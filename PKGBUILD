@@ -1,6 +1,6 @@
 # Maintainer: Duvet05 <gonzalo.galvezc@pucp.edu.pe>
 pkgname=web-blocker-git
-pkgver=r17.83f0fdf
+pkgver=r18.3f9d1af
 pkgrel=1
 pkgdesc="A tool to block unwanted websites using iptables"
 arch=('any')
