@@ -9,7 +9,7 @@ url="https://github.com/Duvet05/web-blocker"
 license=('GPL3')
 depends=('bash' 'iptables' 'python3' 'python-dnspython')
 source=("$pkgname-$pkgver.tar.gz")
-sha256sums=('1825b5486207a781f4b6f8f27e4dd7a6786d1853c7870bcad5c4d3774dabd7cc')
+sha256sums=('0c9f6148b4d0ebec5707da8a3709ddedbf41e94639ed88958d886c379490e714')
 
 package() {
     install -Dm755 "$srcdir/web-blocker.sh" "$pkgdir/usr/bin/web-blocker"
