@@ -11,36 +11,18 @@ import requests
 import dns.resolver
 from concurrent.futures import ThreadPoolExecutor
 
-# Default sites (used as a fallback in the Bash script)
-DEFAULT_SITES = ["facebook.com", "twitter.com", "instagram.com"]
-
-# Blocklist sources (for optional list fetching)
-BLOCKLIST_URLS = {
-    "easylist": "https://easylist.to/easylist/easylist.txt",
-    "peterlowe": "https://pgl.yoyo.org/adservers/serverlist.php?format=hosts"
-}
-
 # Public DNS servers for resolution
 PUBLIC_DNS = [
     "8.8.8.8", "8.8.4.4",        # Google Public DNS
     "1.1.1.1", "1.0.0.1",        # Cloudflare
     "9.9.9.9", "149.112.112.112",# Quad9
-    "208.67.222.222", "208.67.220.220",  # OpenDNS (Cisco)
+    "208.67.222.222", "208.67.220.220",  # OpenDNS
     "94.140.14.14", "94.140.15.15",      # AdGuard
-    "4.2.2.1", "4.2.2.2"         # Level3 (CenturyLink)
+    "4.2.2.1", "4.2.2.2"         # Level3
 ]
 
 def resolve_domain(domain, dns_server):
-    """
-    Resolve IP addresses for a given domain using a specific DNS server.
-
-    Args:
-        domain (str): Domain name to resolve.
-        dns_server (str): DNS server IP to use.
-
-    Returns:
-        set: Set of resolved IP addresses.
-    """
+    """Resolve IP addresses for a domain using a specific DNS server."""
     resolver = dns.resolver.Resolver()
     resolver.nameservers = [dns_server]
     ips = set()
@@ -53,20 +35,10 @@ def resolve_domain(domain, dns_server):
     return ips
 
 def probe_domain(domain):
-    """
-    Probe a domain via HTTP HEAD request to capture additional IPs.
-
-    Args:
-        domain (str): Domain name to probe.
-
-    Returns:
-        set: Set of resolved IP addresses from HTTP connections.
-    """
+    """Probe a domain via HTTP HEAD request to capture additional IPs."""
     ips = set()
     try:
-        # Use HEAD request to minimize data transfer
         response = requests.head(f"https://{domain}", timeout=5, allow_redirects=True)
-        # Get IP from socket connection (requires lower-level handling, here we approximate)
         ip = response.raw._connection.sock.getpeername()[0]
         ips.add(ip)
     except Exception:
@@ -74,26 +46,19 @@ def probe_domain(domain):
     return ips
 
 def get_ips(sites):
-    """
-    Dynamically resolve IP addresses for given sites using public DNS and HTTP probing.
-
-    Args:
-        sites (list): List of domain names to resolve.
-
-    Returns:
-        set: Set of all resolved IP addresses.
-    """
+    """Resolve IP addresses for sites using DNS and HTTP probing dynamically."""
     all_ips = set()
     domains_to_check = set()
 
-    # Add original sites and extended variations
-    common_prefixes = ["www", "api", "m", "svc", "i", "v", "oauth"]  # More Reddit-specific prefixes
+    # Generic common prefixes for subdomains
+    common_prefixes = ["www", "api", "m", "svc", "media", "gateway"]
     for site in sites:
         domains_to_check.add(site)
+        # Add common subdomain variations dynamically
         for prefix in common_prefixes:
             domains_to_check.add(f"{prefix}.{site}")
 
-    # Step 1: Resolve IPs via DNS concurrently
+    # Step 1: Resolve IPs via DNS
     with ThreadPoolExecutor(max_workers=15) as executor:
         future_to_domain = {
             executor.submit(resolve_domain, domain, dns_server): (domain, dns_server)
@@ -108,7 +73,7 @@ def get_ips(sites):
                 domain, dns_server = future_to_domain[future]
                 print(f"Warning: Could not resolve {domain} with {dns_server}: {e}", file=sys.stderr)
 
-    # Step 2: Probe domains via HTTP to catch dynamic CDN IPs
+    # Step 2: Probe domains via HTTP
     with ThreadPoolExecutor(max_workers=5) as executor:
         future_to_probe = {
             executor.submit(probe_domain, domain): domain
@@ -123,45 +88,20 @@ def get_ips(sites):
                 print(f"Warning: Could not probe {domain}: {e}", file=sys.stderr)
 
     if not all_ips:
-        print("Error: No IPs resolved for any site. Check domain names or network connectivity.", file=sys.stderr)
+        print("Error: No IPs resolved for any site.", file=sys.stderr)
         sys.exit(1)
 
     return all_ips
 
-def fetch_blocklist(url):
-    """
-    Fetch and parse a blocklist from a given URL.
-
-    Args:
-        url (str): URL of the blocklist.
-
-    Returns:
-        list: List of domain names extracted from the blocklist.
-    """
-    try:
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-        return [line.split()[1] for line in response.text.splitlines() if line.startswith("127.0.0.1")]
-    except Exception as e:
-        print(f"Error fetching blocklist from {url}: {e}", file=sys.stderr)
-        return []
-
 def main():
-    """Main function to handle command-line arguments and execute IP resolution or blocklist fetching."""
-    parser = argparse.ArgumentParser(description="Web Blocker IP Resolver - Resolve IPs or fetch blocklists dynamically.")
-    parser.add_argument("--get-ips", nargs="+", help="Resolve IP addresses for the specified domains.")
-    parser.add_argument("--list", choices=BLOCKLIST_URLS.keys(), help="Fetch a predefined blocklist.")
+    """Main function to handle command-line arguments."""
+    parser = argparse.ArgumentParser(description="Web Blocker IP Resolver")
+    parser.add_argument("--get-ips", nargs="+", help="Resolve IPs for domains.")
     args = parser.parse_args()
 
     if args.get_ips:
         ips = get_ips(args.get_ips)
-        print(" ".join(sorted(ips)))  # Sort for consistency
-    elif args.list:
-        sites = fetch_blocklist(BLOCKLIST_URLS[args.list])
-        if sites:
-            print("\n".join(sites))
-        else:
-            sys.exit(1)
+        print(" ".join(sorted(ips)))
     else:
         parser.print_help()
         sys.exit(1)
