@@ -2,7 +2,7 @@
 
 """
 Web Blocker IP Resolver
-A utility to dynamically resolve IP addresses for specified domains using public DNS servers with extended domain variations.
+A utility to dynamically resolve IP addresses for specified domains using public DNS and HTTP probing.
 """
 
 import sys
@@ -49,13 +49,33 @@ def resolve_domain(domain, dns_server):
         for rdata in answers:
             ips.add(rdata.address)
     except Exception:
-        # Silently ignore errors; we'll try other servers or variations
+        pass
+    return ips
+
+def probe_domain(domain):
+    """
+    Probe a domain via HTTP HEAD request to capture additional IPs.
+
+    Args:
+        domain (str): Domain name to probe.
+
+    Returns:
+        set: Set of resolved IP addresses from HTTP connections.
+    """
+    ips = set()
+    try:
+        # Use HEAD request to minimize data transfer
+        response = requests.head(f"https://{domain}", timeout=5, allow_redirects=True)
+        # Get IP from socket connection (requires lower-level handling, here we approximate)
+        ip = response.raw._connection.sock.getpeername()[0]
+        ips.add(ip)
+    except Exception:
         pass
     return ips
 
 def get_ips(sites):
     """
-    Dynamically resolve IP addresses for given sites using public DNS servers with extended domain variations.
+    Dynamically resolve IP addresses for given sites using public DNS and HTTP probing.
 
     Args:
         sites (list): List of domain names to resolve.
@@ -66,15 +86,15 @@ def get_ips(sites):
     all_ips = set()
     domains_to_check = set()
 
-    # Add original sites and common variations
-    common_prefixes = ["www", "api", "m", "svc"]  # Generic prefixes for many sites
+    # Add original sites and extended variations
+    common_prefixes = ["www", "api", "m", "svc", "i", "v", "oauth"]  # More Reddit-specific prefixes
     for site in sites:
         domains_to_check.add(site)
         for prefix in common_prefixes:
             domains_to_check.add(f"{prefix}.{site}")
 
-    # Resolve IPs concurrently using public DNS servers
-    with ThreadPoolExecutor(max_workers=15) as executor:  # Increased workers for more domains
+    # Step 1: Resolve IPs via DNS concurrently
+    with ThreadPoolExecutor(max_workers=15) as executor:
         future_to_domain = {
             executor.submit(resolve_domain, domain, dns_server): (domain, dns_server)
             for domain in domains_to_check
@@ -87,6 +107,20 @@ def get_ips(sites):
             except Exception as e:
                 domain, dns_server = future_to_domain[future]
                 print(f"Warning: Could not resolve {domain} with {dns_server}: {e}", file=sys.stderr)
+
+    # Step 2: Probe domains via HTTP to catch dynamic CDN IPs
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        future_to_probe = {
+            executor.submit(probe_domain, domain): domain
+            for domain in domains_to_check
+        }
+        for future in future_to_probe:
+            try:
+                ips = future.result()
+                all_ips.update(ips)
+            except Exception as e:
+                domain = future_to_probe[future]
+                print(f"Warning: Could not probe {domain}: {e}", file=sys.stderr)
 
     if not all_ips:
         print("Error: No IPs resolved for any site. Check domain names or network connectivity.", file=sys.stderr)
