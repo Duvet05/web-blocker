@@ -2,7 +2,7 @@
 
 """
 Web Blocker IP Resolver
-A utility to dynamically resolve IP addresses for specified domains using public DNS servers.
+A utility to dynamically resolve IP addresses for specified domains using public DNS servers with extended domain variations.
 """
 
 import sys
@@ -55,7 +55,7 @@ def resolve_domain(domain, dns_server):
 
 def get_ips(sites):
     """
-    Dynamically resolve IP addresses for given sites using public DNS servers.
+    Dynamically resolve IP addresses for given sites using public DNS servers with extended domain variations.
 
     Args:
         sites (list): List of domain names to resolve.
@@ -66,13 +66,15 @@ def get_ips(sites):
     all_ips = set()
     domains_to_check = set()
 
-    # Add original sites and common variations (e.g., www)
+    # Add original sites and common variations
+    common_prefixes = ["www", "api", "m", "svc"]  # Generic prefixes for many sites
     for site in sites:
         domains_to_check.add(site)
-        domains_to_check.add(f"www.{site}")  # Common prefix for many sites
+        for prefix in common_prefixes:
+            domains_to_check.add(f"{prefix}.{site}")
 
     # Resolve IPs concurrently using public DNS servers
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    with ThreadPoolExecutor(max_workers=15) as executor:  # Increased workers for more domains
         future_to_domain = {
             executor.submit(resolve_domain, domain, dns_server): (domain, dns_server)
             for domain in domains_to_check
