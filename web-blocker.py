@@ -1,35 +1,37 @@
 #!/usr/bin/env python3
 
 import sys
-import socket
 import argparse
 import requests
+import dns.resolver
 
 # Lista de sitios por defecto
 DEFAULT_SITES = ["facebook.com", "twitter.com", "instagram.com"]
 
-# Fuentes de listas de bloqueo (ejemplo)
+# Fuentes de listas de bloqueo
 BLOCKLIST_URLS = {
     "easylist": "https://easylist.to/easylist/easylist.txt",
     "peterlowe": "https://pgl.yoyo.org/adservers/serverlist.php?format=hosts"
 }
 
 def get_ips(sites):
-    """Resuelve las IPs de los sitios dados."""
+    """Resuelve las IPs de los sitios dados usando un DNS externo."""
+    resolver = dns.resolver.Resolver()
+    resolver.nameservers = ['8.8.8.8']  # Usar DNS de Google
     ips = set()
     for site in sites:
         try:
-            ip = socket.gethostbyname(site)
-            ips.add(ip)
-        except socket.gaierror:
-            print(f"No se pudo resolver la IP de {site}", file=sys.stderr)
+            answers = resolver.resolve(site, 'A')
+            for rdata in answers:
+                ips.add(rdata.address)
+        except Exception as e:
+            print(f"No se pudo resolver la IP de {site}: {e}", file=sys.stderr)
     return ips
 
 def fetch_blocklist(url):
     """Descarga y parsea una lista de bloqueo desde una URL."""
     response = requests.get(url)
     response.raise_for_status()
-    # Simplificación: asumimos que cada línea tiene un dominio después de '127.0.0.1'
     return [line.split()[1] for line in response.text.splitlines() if line.startswith("127.0.0.1")]
 
 def main():
