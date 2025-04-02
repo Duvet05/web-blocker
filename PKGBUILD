@@ -1,6 +1,6 @@
 # Maintainer: Duvet05 <gonzalo.galvezc@pucp.edu.pe>
 pkgname=web-blocker-git  # Renamed to reflect Git source
-pkgver=r1.0  # Initial dynamic version
+pkgver=r11.682826e  # Initial dynamic version
 pkgrel=1
 pkgdesc="A tool to block unwanted websites using iptables"
 arch=('any')
