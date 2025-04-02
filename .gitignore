@@ -9,6 +9,6 @@
 *.log.*
 *.sig
 
-web-blocker
+web-blocker/
 pkg/
 src/
