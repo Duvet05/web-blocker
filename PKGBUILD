@@ -3,11 +3,11 @@ _pkgname=web-blocker
 pkgname=web-blocker
 pkgver=1.0
 pkgrel=1
-pkgdesc="A tool to block annoying websites using iptables"
+pkgdesc="A tool to block unwanted websites using iptables"
 arch=('any')
 url="https://github.com/Duvet05/web-blocker"
-license=('GNU')
-depends=('bash' 'iptables' 'python3', 'python-dnspython')
+license=('GPL3')
+depends=('bash' 'iptables' 'python3' 'python-dnspython')
 source=("$pkgname-$pkgver.tar.gz")
 sha256sums=('1825b5486207a781f4b6f8f27e4dd7a6786d1853c7870bcad5c4d3774dabd7cc')
 
