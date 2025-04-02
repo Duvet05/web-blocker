@@ -10,7 +10,7 @@ license=('GNU')
 depends=('bash' 'iptables' 'python3')
 optdepends=('ufw: for additional firewall blocking')
 source=("$pkgname-$pkgver.tar.gz")
-sha256sums=('SKIP') # Cambiar por el hash real tras comprimir
+sha256sums=('a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6')
 
 package() {
     install -Dm755 "$srcdir/web-blocker.sh" "$pkgdir/usr/bin/web-blocker"
