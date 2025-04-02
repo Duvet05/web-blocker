@@ -1,23 +1,23 @@
 # Maintainer: Duvet05 <gonzalo.galvezc@pucp.edu.pe>
-pkgname=web-blocker-git  # Renamed to reflect Git source
-pkgver=r11.682826e  # Initial dynamic version
+pkgname=web-blocker-git
+pkgver=r12.09200c0
 pkgrel=1
 pkgdesc="A tool to block unwanted websites using iptables"
 arch=('any')
 url="https://github.com/Duvet05/web-blocker"
 license=('GPL3')
 depends=('bash' 'iptables' 'python3' 'python-dnspython')
-makedepends=('git')  # Added for Git cloning
+makedepends=('git')
 source=("git+$url.git")
 sha256sums=('SKIP')
 
 pkgver() {
-    cd "$srcdir/web-blocker"  # Match the repository name
+    cd "$srcdir/web-blocker"
     printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
 }
 
 package() {
-    cd "$srcdir/web-blocker"  # Enter the cloned Git directory
+    cd "$srcdir/web-blocker"
     install -Dm755 "web-blocker.sh" "$pkgdir/usr/bin/web-blocker"
     install -Dm755 "web-blocker.py" "$pkgdir/usr/lib/web-blocker/web-blocker.py"
     install -Dm644 "sites.conf" "$pkgdir/etc/web-blocker/sites.conf"
